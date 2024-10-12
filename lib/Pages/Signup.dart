@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:random_string/random_string.dart';
-import 'package:travel_app/Pages/Login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:travel_app/Pages/Login.dart';
 import 'package:travel_app/Pages/bottomnav.dart';
 import 'package:travel_app/services/database.dart';
 import 'package:travel_app/services/shared_pref.dart';
@@ -17,6 +16,7 @@ class SignUp extends StatefulWidget {
 
 class _SignUpState extends State<SignUp> {
   String email = "", password = "", name = "";
+  bool _obscurePassword = true; // For toggling password visibility
 
   TextEditingController namecontroller = TextEditingController();
   TextEditingController passwordcontroller = TextEditingController();
@@ -91,8 +91,6 @@ class _SignUpState extends State<SignUp> {
       ));
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +171,7 @@ class _SignUpState extends State<SignUp> {
                                 controller: namecontroller,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'please Enter Name';
+                                    return 'Please Enter Name';
                                   }
                                   return null;
                                 },
@@ -188,7 +186,7 @@ class _SignUpState extends State<SignUp> {
                                 controller: mailcontroller,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'please Enter E-mail';
+                                    return 'Please Enter E-mail';
                                   }
                                   return null;
                                 },
@@ -203,15 +201,27 @@ class _SignUpState extends State<SignUp> {
                                 controller: passwordcontroller,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'please Enter Password';
+                                    return 'Please Enter Password';
                                   }
                                   return null;
                                 },
-                                obscureText: true,
+                                obscureText: _obscurePassword, // Control visibility
                                 decoration: InputDecoration(
                                   hintText: "Password",
                                   hintStyle: AppWidget.lightTextFieldStyle(),
                                   prefixIcon: const Icon(Icons.password_outlined),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 40.0),

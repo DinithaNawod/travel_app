@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:travel_app/Pages/TripDetailsPage.dart';
 
 class Plan extends StatefulWidget {
   const Plan({super.key});
@@ -20,8 +21,8 @@ class _PlanState extends State<Plan> {
   final List<String> _groupSizes = [
     'Single (01 Person)',
     'Couple (02 Persons)',
-    'Family (04 persons)',
-    'Group (10 persons)'
+    'Family (04 Persons)',
+    'Group (10 Persons)'
   ]; // Group size options
 
   // Method to show the date range picker
@@ -37,10 +38,11 @@ class _PlanState extends State<Plan> {
     );
     if (picked != null && picked != _selectedDateRange) {
       setState(() {
-        _selectedDateRange = picked;
+        _selectedDateRange = picked; // This updates the selected date range
       });
     }
   }
+
 
   // Validate inputs
   bool _validateInputs() {
@@ -66,7 +68,7 @@ class _PlanState extends State<Plan> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 40), // Space above the text
+                SizedBox(height: 40),
                 Center(
                   child: Text(
                     'Plan Your Next Journey',
@@ -76,7 +78,7 @@ class _PlanState extends State<Plan> {
                     ),
                   ),
                 ),
-                SizedBox(height: 40), // Space between the title and the next text
+                SizedBox(height: 40),
                 Text(
                   'Where do you want to go?',
                   style: TextStyle(
@@ -84,11 +86,11 @@ class _PlanState extends State<Plan> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 10), // Space between the question and the dropdown
+                SizedBox(height: 10),
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _isDestinationError ? Colors.red : Colors.green, // Red border if error
+                      color: _isDestinationError ? Colors.red : Colors.green,
                       width: 1,
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -121,7 +123,7 @@ class _PlanState extends State<Plan> {
                       style: TextStyle(color: Colors.red, fontSize: 12),
                     ),
                   ),
-                SizedBox(height: 40), // Space between the destination dropdown and the group size field
+                SizedBox(height: 40),
 
                 Text(
                   'How many people are going?',
@@ -130,15 +132,13 @@ class _PlanState extends State<Plan> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 10), // Space between the question and the box buttons
-
-                // Box buttons for group sizes
+                SizedBox(height: 10),
                 Wrap(
-                  spacing: 10, // Space between buttons horizontally
-                  runSpacing: 15, // Space between buttons vertically
+                  spacing: 10,
+                  runSpacing: 15,
                   children: _groupSizes.map((groupSize) {
                     return SizedBox(
-                      width: (MediaQuery.of(context).size.width - 42) / 2, // Half of the available width for 2 columns
+                      width: (MediaQuery.of(context).size.width - 42) / 2,
                       child: GestureDetector(
                         onTap: () {
                           setState(() {
@@ -146,7 +146,7 @@ class _PlanState extends State<Plan> {
                           });
                         },
                         child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 10), // Smaller padding for the buttons
+                          padding: EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
                             border: Border.all(
                               color: Color(0xff1a5317),
@@ -178,7 +178,7 @@ class _PlanState extends State<Plan> {
                       style: TextStyle(color: Colors.red, fontSize: 12),
                     ),
                   ),
-                SizedBox(height: 40), // Space between group sizes and the date selector
+                SizedBox(height: 40),
 
                 Text(
                   'When do you want to go?',
@@ -187,16 +187,15 @@ class _PlanState extends State<Plan> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 10), // Space between the question and the date selector
+                SizedBox(height: 10),
 
-                // Date range selector styled like a text field
                 GestureDetector(
                   onTap: () => _selectDateRange(context),
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: _isDateRangeError ? Colors.red : Colors.green, // Red border if error
+                        color: _isDateRangeError ? Colors.red : Colors.green,
                         width: 1,
                       ),
                       borderRadius: BorderRadius.circular(12),
@@ -213,7 +212,7 @@ class _PlanState extends State<Plan> {
                             color: _selectedDateRange == null ? Colors.grey : Colors.black,
                           ),
                         ),
-                        Icon(Icons.calendar_today, color: Color(0xff1a5317),),
+                        Icon(Icons.calendar_today, color: Color(0xff1a5317)),
                       ],
                     ),
                   ),
@@ -226,24 +225,32 @@ class _PlanState extends State<Plan> {
                       style: TextStyle(color: Colors.red, fontSize: 12),
                     ),
                   ),
-                SizedBox(height: 40), // Space between the date picker and the button
+                SizedBox(height: 40),
 
-                // "Create New Trip" button
                 Center(
                   child: ElevatedButton(
                     onPressed: () {
                       if (_validateInputs()) {
-                        // Add logic to create a new trip when all fields are validated
-                        print('Creating New Trip...');
+                        // Navigate to TripDetailsPage with selected data
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TripDetailsPage(
+                              selectedDestination: _selectedDestination,
+                              selectedGroupSize: _selectedGroupSize,
+                              selectedDateRange: _selectedDateRange, // Pass the selected date range
+                            ),
+                          ),
+                        );
                       } else {
                         print('Required fields are missing.');
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xff1a5317), // Green background for the button
-                      padding: EdgeInsets.symmetric(vertical: 14, horizontal: 40), // Button padding
+                      backgroundColor: Color(0xff1a5317),
+                      padding: EdgeInsets.symmetric(vertical: 14, horizontal: 40),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30), // Rounded button
+                        borderRadius: BorderRadius.circular(30),
                       ),
                     ),
                     child: Text(
@@ -251,11 +258,12 @@ class _PlanState extends State<Plan> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white, // White text
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 ),
+
                 SizedBox(height: 40),
               ],
             ),

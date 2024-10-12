@@ -153,7 +153,7 @@ class GuideCard extends StatelessWidget {
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Image.asset(
-                        'images/profilecrop.jpg', // Fallback image
+                        'images/no-image.png', // Fallback image
                         height: 50.0,
                         width: 50.0,
                         fit: BoxFit.cover,

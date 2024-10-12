@@ -1,8 +1,9 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class GuideInfoPage extends StatelessWidget {
+class GuideInfoPage extends StatefulWidget {
   final String name;
   final String profession;
   final String imageUrl;
@@ -15,6 +16,153 @@ class GuideInfoPage extends StatelessWidget {
   });
 
   @override
+  _GuideInfoPageState createState() => _GuideInfoPageState();
+}
+
+class _GuideInfoPageState extends State<GuideInfoPage> {
+  String experience = 'No experience added'; // Default message for experience
+  String language = 'No languages added'; // Default message for languages
+  String services = 'No services added'; // Default message for services
+  String contactNumber = ''; // Contact number
+  List<String> travelImages = []; // List to store image URLs
+  bool isLoadingExperience = true; // Loader for experience data
+  bool isLoadingLanguage = true; // Loader for language data
+  bool isLoadingServices = true; // Loader for services data
+  bool isLoadingContactNumber = true; // Loader for contact number data
+  bool isLoadingTravelImages = true; // Loader for travel images data
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchExperience();
+    _fetchLanguage();
+    _fetchServices();
+    _fetchContactNumber();
+    _fetchTravelImages();
+  }
+
+  Future<void> _fetchExperience() async {
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('Guides')
+          .doc(widget.name)
+          .get();
+
+      if (doc.exists && doc['experience'] != null) {
+        setState(() {
+          experience = doc['experience'];
+          isLoadingExperience = false;
+        });
+      } else {
+        setState(() {
+          isLoadingExperience = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoadingExperience = false;
+      });
+    }
+  }
+
+  Future<void> _fetchLanguage() async {
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('Guides')
+          .doc(widget.name)
+          .get();
+
+      if (doc.exists && doc['language'] != null) {
+        setState(() {
+          language = doc['language'];
+          isLoadingLanguage = false;
+        });
+      } else {
+        setState(() {
+          isLoadingLanguage = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoadingLanguage = false;
+      });
+    }
+  }
+
+  Future<void> _fetchServices() async {
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('Guides')
+          .doc(widget.name)
+          .get();
+
+      if (doc.exists && doc['services'] != null) {
+        setState(() {
+          services = doc['services'];
+          isLoadingServices = false;
+        });
+      } else {
+        setState(() {
+          isLoadingServices = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoadingServices = false;
+      });
+    }
+  }
+
+  Future<void> _fetchContactNumber() async {
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('Guides')
+          .doc(widget.name)
+          .get();
+
+      if (doc.exists && doc['contactNumber'] != null) {
+        setState(() {
+          contactNumber = doc['contactNumber'];
+          isLoadingContactNumber = false;
+        });
+      } else {
+        setState(() {
+          isLoadingContactNumber = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoadingContactNumber = false;
+      });
+    }
+  }
+
+  Future<void> _fetchTravelImages() async {
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('Guides')
+          .doc(widget.name)
+          .get();
+
+      if (doc.exists && doc['travelImages'] != null) {
+        List<String> images = List<String>.from(doc['travelImages']);
+        setState(() {
+          travelImages = images;
+          isLoadingTravelImages = false;
+        });
+      } else {
+        setState(() {
+          isLoadingTravelImages = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoadingTravelImages = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -23,7 +171,7 @@ class GuideInfoPage extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context); // Navigates back to the previous page
+            Navigator.pop(context);
           },
         ),
       ),
@@ -37,9 +185,11 @@ class GuideInfoPage extends StatelessWidget {
               Column(
                 children: [
                   const SizedBox(height: 10.0),
-                  CarouselSlider(
-                    items: [
-                      Container(
+                  isLoadingTravelImages
+                      ? CircularProgressIndicator()
+                      : CarouselSlider(
+                    items: travelImages.map((imageUrl) {
+                      return Container(
                         margin: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
@@ -53,16 +203,15 @@ class GuideInfoPage extends StatelessWidget {
                             width: double.infinity,
                             errorBuilder: (context, error, stackTrace) {
                               return Image.asset(
-                                'images/profilecrop.jpg', // Fallback image
+                                'images/profilecrop.jpg',
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                               );
                             },
                           ),
                         ),
-                      ),
-                      // Add more images if needed
-                    ],
+                      );
+                    }).toList(),
                     options: CarouselOptions(
                       height: 250,
                       aspectRatio: 16 / 8,
@@ -76,55 +225,88 @@ class GuideInfoPage extends StatelessWidget {
               ),
               SizedBox(height: 20),
 
-              // Guide Name
+              // Guide Name and Profession
               Text(
-                name,
+                widget.name,
                 style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
               ),
               Text(
-                profession,
+                widget.profession,
                 style: TextStyle(fontSize: 22, color: Colors.green, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 40),
 
-              // Description
+              // Experience (Description) Section
               Text(
-                'Description',
+                'Experience',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              Text(
-                'This is a sample product description. It provides details about the product, its features, and benefits. This section can include information on materials, dimensions, or any other relevant specifications that the user may find useful.',
+              isLoadingExperience
+                  ? CircularProgressIndicator()
+                  : Text(
+                experience,
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 40),
 
-              // Provided Packages
+              // Languages Section
               Text(
-                'Provided Packages',
+                'Languages',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              _buildFeatureItem('Knuckles Hike (3 Days)'),
-              _buildFeatureItem('Galle Fort (2 Days)'),
-              _buildFeatureItem('Jaffna'),
-              _buildFeatureItem('Rathnapura (3 days)'),
+              isLoadingLanguage
+                  ? CircularProgressIndicator()
+                  : Text(
+                language,
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 40),
 
+              // Provided Services Section
+              Text(
+                'Provided Services',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              isLoadingServices
+                  ? CircularProgressIndicator()
+                  : Text(
+                services,
+                style: TextStyle(fontSize: 16),
+              ),
               SizedBox(height: 60),
 
               // Contact Button
               Center(
                 child: ElevatedButton(
                   onPressed: () async {
-                    final Uri url = Uri.parse('https://t.me/shashini_kavindya'); // Replace with your Telegram link
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url);
+                    if (contactNumber.isNotEmpty) {
+                      final Uri url = Uri.parse('tel:$contactNumber');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url);
+                      } else {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) => AlertDialog(
+                            title: Text('Error'),
+                            content: Text('Could not launch dialer'),
+                            actions: <Widget>[
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
                     } else {
                       showDialog(
                         context: context,
                         builder: (BuildContext context) => AlertDialog(
-                          title: Text('Error'),
-                          content: Text('Could not launch'),
+                          title: Text('No Contact Number'),
+                          content: Text('Contact number not available.'),
                           actions: <Widget>[
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(),
@@ -141,7 +323,7 @@ class GuideInfoPage extends StatelessWidget {
                   ),
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                    backgroundColor: Color(0xff002e47),
+                    backgroundColor: Color(0xff1a5317),
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -162,12 +344,7 @@ class GuideInfoPage extends StatelessWidget {
         children: [
           Icon(Icons.check, color: Colors.green),
           SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              feature,
-              style: TextStyle(fontSize: 16),
-            ),
-          ),
+          Expanded(child: Text(feature, style: TextStyle(fontSize: 16))),
         ],
       ),
     );
