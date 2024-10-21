@@ -56,7 +56,7 @@ class _BottomNavState extends State<BottomNav> {
             ),
 
             Icon(
-              Icons.gif_box_outlined,
+              Icons.travel_explore,
               color: Colors.white,
             ),
 

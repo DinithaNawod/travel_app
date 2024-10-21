@@ -1,11 +1,6 @@
-import 'dart:io';
-
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:random_string/random_string.dart';
 import 'package:travel_app/Pages/Login.dart';
-import 'package:travel_app/Pages/Signup.dart';
+import 'package:travel_app/Pages/AccountManagement.dart'; // Import your AccountManagement page
 import 'package:travel_app/services/auth.dart';
 import 'package:travel_app/services/shared_pref.dart';
 
@@ -19,54 +14,16 @@ class Profile extends StatefulWidget {
 class _ProfileState extends State<Profile> {
   String? profile, name, email;
 
-  final ImagePicker _picker= ImagePicker();
-  File? selectedImage;
-
-  Future getImage() async{
-    var image= await _picker.pickImage(source: ImageSource.gallery);
-
-    selectedImage= File(image!.path);
-    setState(() {
-      uploadItem();
-    });
+  getthesharedpref() async {
+    profile = await SharedPreferenceHelper().getUserProfile();
+    name = await SharedPreferenceHelper().getUserName();
+    email = await SharedPreferenceHelper().getUserEmail();
+    setState(() {});
   }
 
-  uploadItem()async{
-    if(selectedImage != null
-    ) {
-      String addId = randomAlphaNumeric(10);
-
-      Reference firebaseStorageRef =
-      FirebaseStorage.instance.ref().child("blogImages").child(addId);
-      final UploadTask task = firebaseStorageRef.putFile(selectedImage!);
-
-      var downloadUrl = await (await task).ref.getDownloadURL();
-      await SharedPreferenceHelper().saveUserProfile(downloadUrl);
-      setState(() {
-
-      });
-
-
-
-    }
-
-  }
-
-
-  getthesharedpref() async{
-    profile= await SharedPreferenceHelper().getUserProfile();
-    name= await SharedPreferenceHelper().getUserName();
-    email= await SharedPreferenceHelper().getUserEmail();
-    setState(() {
-
-    });
-  }
-
-  onthisload() async{
+  onthisload() async {
     await getthesharedpref();
-    setState(() {
-
-    });
+    setState(() {});
   }
 
   @override
@@ -79,168 +36,78 @@ class _ProfileState extends State<Profile> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
-      body: name==null? const CircularProgressIndicator(): Container(
-        child: Column(children: [
+      body: name == null
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+        children: [
           Stack(
             children: [
               Container(
-                padding: const EdgeInsets.only(top: 45.0, left: 20.0, right: 20.0),
-                height: MediaQuery.of(context).size.height/4.3,
+                padding: const EdgeInsets.only(
+                    top: 45.0, left: 20.0, right: 20.0),
+                height: MediaQuery.of(context).size.height / 4.3,
                 width: MediaQuery.of(context).size.width,
                 decoration: BoxDecoration(
-                    color: Color(0xff1a5317),
+                    color: const Color(0xff1a5317),
                     borderRadius: BorderRadius.vertical(
-                        bottom: Radius.elliptical(MediaQuery.of(context).size.width, 105.5)
-                    )
-                ),
+                        bottom: Radius.elliptical(
+                            MediaQuery.of(context).size.width, 105.5))),
               ),
               Center(
                 child: Container(
-                  margin: EdgeInsets.only(top: MediaQuery.of(context).size.height/6.5),
+                  margin: EdgeInsets.only(
+                      top: MediaQuery.of(context).size.height / 6.5),
                   child: Material(
-                      elevation: 10.0,
+                    elevation: 10.0,
+                    borderRadius: BorderRadius.circular(60),
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(60),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(60),
-                        child: selectedImage==null? GestureDetector(
-                            onTap: (){
-                              getImage();
-                            },
-                            child: profile==null? Image.asset("images/20171206_01.jpg", height: 120, width: 120, fit: BoxFit.cover,) :Image.network(
-                              profile!,
-                              height: 120, width: 120, fit: BoxFit.cover,)
-                        ):Image.file(selectedImage!),
+                      child: profile == null
+                          ? Image.asset(
+                        "images/20171206_01.jpg",
+                        height: 120,
+                        width: 120,
+                        fit: BoxFit.cover,
                       )
+                          : Image.network(
+                        profile!,
+                        height: 120,
+                        width: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                 ),
               ),
               Center(
-                child: Padding(padding: const EdgeInsets.only(top: 60.0), child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(name!, style: const TextStyle(
-                      color: Colors.white, fontSize: 25.0, fontWeight: FontWeight.normal,
-                    ),)
-                  ],),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 60.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        name ?? 'Guest', // Fallback if name is null
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 25.0,
+                          fontWeight: FontWeight.normal,
+                        ),
+                      )
+                    ],
+                  ),
                 ),
               )
             ],
           ),
-          const SizedBox(height: 20.0,),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Material(
-              borderRadius: BorderRadius.circular(10),
-              elevation: 5.0,
-              child: Material(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 15.0, horizontal: 10.0,
-                  ),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10)
-                  ),
-                  child: Row(children: [
-                    const Icon(
-                      Icons.person, color: Colors.black,),
-                    const SizedBox(width: 20.0, ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Name", style: TextStyle(
-                            color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600
-                        ),),
-                        Text(name!, style: const TextStyle(
-                            color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600
-                        ),)
-                      ],
-                    )
-                  ],),
-                ),
-              ),
-            ),
-          ),
+          const SizedBox(height: 40.0),
 
-          const SizedBox(height: 20.0,),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Material(
-              borderRadius: BorderRadius.circular(10),
-              elevation: 5.0,
-              child: Material(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 15.0, horizontal: 10.0,
-                  ),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10)
-                  ),
-                  child: Row(children: [
-                    const Icon(
-                      Icons.email, color: Colors.black,),
-                    const SizedBox(width: 20.0, ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Email", style: TextStyle(
-                            color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600
-                        ),),
-                        Text(email!, style: const TextStyle(
-                            color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600
-                        ),)
-                      ],
-                    )
-                  ],),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20.0,),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Material(
-              borderRadius: BorderRadius.circular(10),
-              elevation: 5.0,
-              child: Material(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 15.0, horizontal: 10.0,
-                  ),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10)
-                  ),
-                  child: const Row(children: [
-                    Icon(
-                      Icons.description, color: Colors.black,),
-                    SizedBox(width: 20.0, ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Terms and Condition", style: TextStyle(
-                            color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600
-                        ),)
-                      ],
-                    )
-                  ],),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20.0,),
+          // Account Management Option
           GestureDetector(
-            onTap: (){
-              AuthMethods().deleteuser() .then((_) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SignUp()),
-                );
-              });
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AccountManagement()),
+              );
             },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -250,34 +117,106 @@ class _ProfileState extends State<Profile> {
                 child: Material(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      vertical: 15.0, horizontal: 10.0,
+                      vertical: 20.0,
+                      horizontal: 10.0,
                     ),
                     decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(10)
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.account_circle, color: Colors.black),
+                        SizedBox(width: 20.0),
+                        Text(
+                          "Account Management",
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w600),
+                        )
+                      ],
                     ),
-                    child: const Row(children: [
-                      Icon(
-                        Icons.delete, color: Colors.black,),
-                      SizedBox(width: 20.0, ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Delete Account", style: TextStyle(
-                              color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600
-                          ),)
-                        ],
-                      )
-                    ],),
                   ),
                 ),
               ),
             ),
           ),
 
-          const SizedBox(height: 20.0,),
+          const SizedBox(height: 20.0),
+
+          // Plan History Option
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Material(
+              borderRadius: BorderRadius.circular(10),
+              elevation: 5.0,
+              child: Material(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 20.0,
+                    horizontal: 10.0,
+                  ),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.history, color: Colors.black),
+                      SizedBox(width: 20.0),
+                      Text(
+                        "Plan History",
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.w600),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20.0),
+
+          // Terms and Conditions Option
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Material(
+              borderRadius: BorderRadius.circular(10),
+              elevation: 5.0,
+              child: Material(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 20.0,
+                    horizontal: 10.0,
+                  ),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.description, color: Colors.black),
+                      SizedBox(width: 20.0),
+                      Text(
+                        "Terms and Conditions",
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.w600),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20.0),
+
+          // Logout Option
           GestureDetector(
-            onTap: (){
+            onTap: () {
               AuthMethods().SignOut().then((_) {
                 Navigator.pushReplacement(
                   context,
@@ -293,33 +232,31 @@ class _ProfileState extends State<Profile> {
                 child: Material(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      vertical: 15.0, horizontal: 10.0,
+                      vertical: 20.0,
+                      horizontal: 10.0,
                     ),
                     decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(10)
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.logout, color: Colors.black),
+                        SizedBox(width: 20.0),
+                        Text(
+                          "LogOut",
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w600),
+                        )
+                      ],
                     ),
-                    child: const Row(children: [
-                      Icon(
-                        Icons.logout, color: Colors.black,),
-                      SizedBox(width: 20.0, ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("LogOut", style: TextStyle(
-                              color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600
-                          ),)
-                        ],
-                      )
-                    ],),
                   ),
                 ),
               ),
             ),
           ),
-
-
-        ],),
+        ],
       ),
     );
   }

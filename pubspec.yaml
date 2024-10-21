@@ -97,6 +97,9 @@ flutter:
     - images/COLOMBO.png
     - images/JAFFNA.png
     - images/GALLE.png
+    - images/user.png
+    - images/istockphoto-1135563582-612x612.jpg
+    - images/IsleHevan text.balck.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

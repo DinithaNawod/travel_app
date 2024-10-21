@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:travel_app/Pages/Login.dart';
 import 'package:travel_app/Pages/bottomnav.dart';
-import 'package:travel_app/services/database.dart';
 import 'package:travel_app/services/shared_pref.dart';
-
 import '../widget/support_widget.dart';
 
 class SignUp extends StatefulWidget {
@@ -24,6 +23,16 @@ class _SignUpState extends State<SignUp> {
 
   final _formkey = GlobalKey<FormState>();
 
+  // Function to get the current count of "Traveler" documents
+  Future<int> _getTravelerCount() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc('UserTraveler')
+        .collection('UserTraveler')
+        .get();
+    return snapshot.docs.length;
+  }
+
   Future<void> registration() async {
     if (password.isNotEmpty) {
       try {
@@ -42,24 +51,30 @@ class _SignUpState extends State<SignUp> {
           ),
         ));
 
-        // Retrieve the current number of users from Firestore
-        int userCount = await DatabaseMethods().getUserCount();
+        // Get the current traveler count and generate a new document ID
+        int travelerCount = await _getTravelerCount();
+        String travelerId =
+            "Traveler ${(travelerCount + 1).toString().padLeft(2, '0')}";
 
-        // Increment the count to generate the new user document ID
-        String userId = "User ${(userCount + 1).toString().padLeft(2, '0')}";
-
+        // Save user data in Firestore
         Map<String, dynamic> addUserInfo = {
           "Name": namecontroller.text,
           "Email": mailcontroller.text,
-          "Id": userId,
+          "Id": travelerId,
         };
 
-        // Add the user details to Firestore with the generated ID
-        await DatabaseMethods().addUserDetails(addUserInfo, userId);
+        // Save the user details under the specified path in Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc('UserTraveler')
+            .collection('UserTraveler')
+            .doc(travelerId)
+            .set(addUserInfo);
 
+        // Save user details locally using SharedPreferences
         await SharedPreferenceHelper().saveUserName(namecontroller.text);
         await SharedPreferenceHelper().saveUserEmail(mailcontroller.text);
-        await SharedPreferenceHelper().saveUserId(userId);
+        await SharedPreferenceHelper().saveUserId(travelerId);
 
         // Navigate to the bottom navigation page after successful registration
         Navigator.pushReplacement(
@@ -277,11 +292,8 @@ class _SignUpState extends State<SignUp> {
                         );
                       },
                       child: const Text(
-                        "Already have an account? Log in",
-                        style: TextStyle(
-                          fontWeight: FontWeight.normal,
-                          fontSize: 15.0,
-                        ),
+                        "Already have an Account? Log in",
+                        style: TextStyle(fontWeight: FontWeight.normal, fontSize: 15.0),
                       ),
                     ),
                   ],

@@ -31,6 +31,10 @@ class _GuideInfoPageState extends State<GuideInfoPage> {
   bool isLoadingContactNumber = true; // Loader for contact number data
   bool isLoadingTravelImages = true; // Loader for travel images data
 
+  double? rating; // Store rating
+  String review = ''; // Store review
+  List<Map<String, dynamic>> reviews = []; // List to store reviews
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +43,7 @@ class _GuideInfoPageState extends State<GuideInfoPage> {
     _fetchServices();
     _fetchContactNumber();
     _fetchTravelImages();
+    _fetchReviews(); // Fetch existing reviews
   }
 
   Future<void> _fetchExperience() async {
@@ -162,6 +167,51 @@ class _GuideInfoPageState extends State<GuideInfoPage> {
     }
   }
 
+  Future<void> _fetchReviews() async {
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('Guides')
+          .doc(widget.name)
+          .get();
+
+      if (doc.exists && doc['reviews'] != null) {
+        setState(() {
+          reviews = List<Map<String, dynamic>>.from(doc['reviews']);
+        });
+      }
+    } catch (e) {
+      // Handle error if necessary
+    }
+  }
+
+  Future<void> _submitReview() async {
+    if (rating != null && review.isNotEmpty) {
+      try {
+        // Update Firestore with the new review
+        await FirebaseFirestore.instance.collection('Guides').doc(widget.name).update({
+          'reviews': FieldValue.arrayUnion([
+            {
+              'rating': rating,
+              'review': review,
+              'timestamp': FieldValue.serverTimestamp(),
+            }
+          ])
+        });
+
+        // Clear the input fields after submission
+        setState(() {
+          rating = null;
+          review = '';
+        });
+
+        // Fetch updated reviews
+        _fetchReviews();
+      } catch (e) {
+        // Handle error if necessary
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -276,76 +326,103 @@ class _GuideInfoPageState extends State<GuideInfoPage> {
                 services,
                 style: TextStyle(fontSize: 16),
               ),
-              SizedBox(height: 60),
+              SizedBox(height: 40),
+
+
 
               // Contact Button
               Center(
                 child: ElevatedButton(
                   onPressed: () async {
-                    if (contactNumber.isNotEmpty) {
-                      final Uri url = Uri.parse('tel:$contactNumber');
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url);
-                      } else {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) => AlertDialog(
-                            title: Text('Error'),
-                            content: Text('Could not launch dialer'),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: Text('OK'),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                    } else {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) => AlertDialog(
-                          title: Text('No Contact Number'),
-                          content: Text('Contact number not available.'),
-                          actions: <Widget>[
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: Text('OK'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
+                    final Uri launchUri = Uri(
+                      scheme: 'https',
+                      path: 'wa.me/$contactNumber',
+                    );
+                    await launchUrl(launchUri);
                   },
-                  child: Text(
-                    'Contact',
-                    style: TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
-                  ),
                   style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                    backgroundColor: Color(0xff1a5317),
-                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xff1a5317), // Button background color
+                  ),
+                  child: Text(
+                    'Contact Guide',
+                    style: TextStyle(
+                      color: Colors.white, // Change text color here (example: white)
+                    ),
                   ),
                 ),
               ),
-              SizedBox(height: 60),
+
+
+
+              SizedBox(height: 40),
+
+              // Rating and Review Section
+              Text(
+                'Rate & Review',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+
+              // Rating Selection
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    icon: Icon(
+                      index < (rating ?? 0) ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        rating = index + 1.0;
+                      });
+                    },
+                  );
+                }),
+              ),
+
+              // Review Input
+              TextField(
+                onChanged: (value) {
+                  setState(() {
+                    review = value;
+                  });
+                },
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'Write your review here...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 10),
+
+              // Submit Review Button
+              ElevatedButton(
+                onPressed: _submitReview,
+                child: Text('Submit Review'),
+              ),
+
+              SizedBox(height: 40),
+
+              // Display Existing Reviews
+              Text(
+                'Existing Reviews',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              reviews.isEmpty
+                  ? Text('No reviews yet.')
+                  : Column(
+                children: reviews.map((review) {
+                  return ListTile(
+                    title: Text('Rating: ${review['rating']}'),
+                    subtitle: Text(review['review']),
+                  );
+                }).toList(),
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // Helper method to build feature list items
-  Widget _buildFeatureItem(String feature) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5.0),
-      child: Row(
-        children: [
-          Icon(Icons.check, color: Colors.green),
-          SizedBox(width: 10),
-          Expanded(child: Text(feature, style: TextStyle(fontSize: 16))),
-        ],
       ),
     );
   }
