@@ -4,6 +4,8 @@ import 'package:travel_app/Pages/AccountManagement.dart'; // Import your Account
 import 'package:travel_app/services/auth.dart';
 import 'package:travel_app/services/shared_pref.dart';
 
+import 'TermsAndConditionsPage.dart';
+
 class Profile extends StatefulWidget {
   const Profile({super.key});
 
@@ -180,37 +182,46 @@ class _ProfileState extends State<Profile> {
           const SizedBox(height: 20.0),
 
           // Terms and Conditions Option
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Material(
-              borderRadius: BorderRadius.circular(10),
-              elevation: 5.0,
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => TermsAndConditionsPage()), // Navigate to TermsAndConditionsPage
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Material(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 20.0,
-                    horizontal: 10.0,
-                  ),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.description, color: Colors.black),
-                      SizedBox(width: 20.0),
-                      Text(
-                        "Terms and Conditions",
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16.0,
-                            fontWeight: FontWeight.w600),
-                      )
-                    ],
+                borderRadius: BorderRadius.circular(10),
+                elevation: 5.0,
+                child: Material(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 20.0,
+                      horizontal: 10.0,
+                    ),
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.description, color: Colors.black),
+                        SizedBox(width: 20.0),
+                        Text(
+                          "Terms and Conditions",
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w600),
+                        )
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
+
 
           const SizedBox(height: 20.0),
 

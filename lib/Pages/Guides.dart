@@ -60,7 +60,10 @@ class _GuidesState extends State<Guides> {
               ),
               const SizedBox(height: 40.0),
               StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('Guides').snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('Guides')
+                    .where('status', isEqualTo: 'accepted')
+                    .snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());

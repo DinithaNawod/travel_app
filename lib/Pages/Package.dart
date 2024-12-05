@@ -24,9 +24,9 @@ class _PackageState extends State<Package> {
   }
 
   Future<void> _fetchPackages() async {
-    QuerySnapshot snapshot = await packagesCollection.get();
+    QuerySnapshot snapshot = await packagesCollection.where('status', isEqualTo: 'Accepted').get();
     setState(() {
-      _allPackages = snapshot.docs; // Store all packages
+      _allPackages = snapshot.docs; // Store all accepted packages
       _filteredPackages = _allPackages; // Initialize filtered packages
     });
   }
@@ -39,10 +39,9 @@ class _PackageState extends State<Package> {
     } else {
       setState(() {
         _filteredPackages = _allPackages.where((package) {
-          var packageData = package.data() as Map<String, dynamic>?;
+          var packageData = package.data() as Map<String, dynamic>?; // Safe cast
           String packageName = packageData?['packageName']?.toLowerCase() ?? '';
           String duration = packageData?['duration']?.toLowerCase() ?? '';
-          // Add more fields to search if needed
           return packageName.contains(query.toLowerCase()) ||
               duration.contains(query.toLowerCase());
         }).toList(); // Filter based on the package name and duration
@@ -72,30 +71,29 @@ class _PackageState extends State<Package> {
             const SizedBox(height: 20.0), // Add space between header and search bar
 
             // Search bar
-          // Search bar
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              labelText: 'Search Packages',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16.0), // Add border radius here
-                borderSide: BorderSide(color: Colors.grey), // You can customize the border color if needed
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Search Packages',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.0), // Add border radius here
+                  borderSide: BorderSide(color: Colors.grey), // Customize border color if needed
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.0), // Add border radius here for focused state
+                  borderSide: BorderSide(color: Colors.blue), // Customize focused border color
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.search),
+                  onPressed: () {
+                    _filterPackages(_searchController.text); // Trigger search on button press
+                  },
+                ),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16.0), // Add border radius here for focused state
-                borderSide: BorderSide(color: Colors.blue), // Customize focused border color
-              ),
-              suffixIcon: IconButton(
-                icon: Icon(Icons.search),
-                onPressed: () {
-                  _filterPackages(_searchController.text); // Trigger search on button press
-                },
-              ),
+              onChanged: (value) {
+                _filterPackages(value); // Update search as user types
+              },
             ),
-            onChanged: (value) {
-              _filterPackages(value); // Update search as user types
-            },
-          ),
 
             const SizedBox(height: 20.0), // Space between search bar and package list
 

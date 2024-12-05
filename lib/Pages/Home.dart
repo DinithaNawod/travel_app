@@ -1,5 +1,6 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:travel_app/Pages/Plan.dart';
 import 'package:travel_app/Pages/bottomnav.dart';
 import 'package:travel_app/widget/support_widget.dart';
@@ -17,21 +18,16 @@ class _HomeState extends State<Home> {
   String? profile, name, email;
 
   getthesharedpref() async{
-    profile= await SharedPreferenceHelper().getUserProfile();
-    name= await SharedPreferenceHelper().getUserName();
-    email= await SharedPreferenceHelper().getUserEmail();
-    setState(() {
-
-    });
+    profile = await SharedPreferenceHelper().getUserProfile();
+    name = await SharedPreferenceHelper().getUserName();
+    email = await SharedPreferenceHelper().getUserEmail();
+    setState(() {});
   }
 
-  onthisload() async{
+  onthisload() async {
     await getthesharedpref();
-    setState(() {
-
-    });
+    setState(() {});
   }
-
 
   // Method to get the appropriate greeting based on the current time
   String getGreeting() {
@@ -59,7 +55,7 @@ class _HomeState extends State<Home> {
       body: name == null
           ? Center(child: CircularProgressIndicator()) // Or any placeholder widget while loading data
           : SingleChildScrollView(
-      child: Container(
+        child: Container(
           margin: const EdgeInsets.only(top: 40.0, left: 20.0, right: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +130,6 @@ class _HomeState extends State<Home> {
                                   fontWeight: FontWeight.normal,
                                 ),
                               ),
-
                               const SizedBox(height: 50), // Adds spacing between the text and button
                               Material(
                                 elevation: 5.0,
@@ -169,8 +164,6 @@ class _HomeState extends State<Home> {
                                   ),
                                 ),
                               ),
-
-
                             ],
                           ),
                         ),
@@ -261,70 +254,6 @@ class _HomeState extends State<Home> {
                           ],
                         ),
                       ),
-                      Container(
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          color: Colors.black, // Optional: background color for container
-                        ),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.asset(
-                                'images/ella-4788958_1920 (1).jpg',
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
-                            ),
-                            const Positioned(
-                              bottom: 10.0,
-                              left: 10.0,
-                              child: Text(
-                                "Ella",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  backgroundColor: Colors.black54, // Optional background color for readability
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          color: Colors.black, // Optional: background color for container
-                        ),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.asset(
-                                'images/anuradhapura-7475663_1920.jpg',
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
-                            ),
-                            const Positioned(
-                              bottom: 10.0,
-                              left: 10.0,
-                              child: Text(
-                                "Anuradhapura",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  backgroundColor: Colors.black54, // Optional background color for readability
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                     options: CarouselOptions(
                       height: 250,
@@ -338,6 +267,75 @@ class _HomeState extends State<Home> {
                 ],
               ),
               const SizedBox(height: 100.0),
+
+              // Tourism News Section
+            FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('TourismNews').doc('kqfLL4gn8edLbtC9uh8x').get(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || !snapshot.data!.exists) {
+                  return Center(child: Text('No tourism news available.'));
+                }
+
+                var newsData = snapshot.data!;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title for the Tourism News section
+                    Text(
+                      'Tourism News',
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Green box for news title and image with reduced opacity
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12), // Adjust the value to set the curve radius
+                        border: Border.all(
+                          color: Color(0xff228B22), // Border color
+                          width: 2.0, // Border width
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // News title
+                          Text(
+                            newsData['newsTitle'] ?? 'No title available',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // News image
+                          Image.network(
+                            newsData['newsImage'] ?? 'images/no-image.png',
+                            fit: BoxFit.cover, // Adjust image fitting if needed
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+
+
+            const SizedBox(height: 100.0),
+
+
+
+
             ],
           ),
         ),

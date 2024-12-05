@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:travel_app/Pages/TripPlanSummary.dart';
 
 import '../services/shared_pref.dart';
+import 'HotelDetailPage.dart';
 
 class TripDetailsPage extends StatefulWidget {
   final String? selectedDestination;
@@ -217,29 +219,56 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
               // Side edge button positioned over the AppBar
               Positioned(
                 right: 10.0,
-                top: 25.0, // Adjust this value based on your layout
+                top: 25.0,
                 child: Container(
-                  width: 60.0, // Set your desired width
-                  height: 50.0, // Set your desired height
+                  width: 60.0,
+                  height: 50.0,
                   child: FloatingActionButton(
-                    onPressed: () {
-                      // Navigate to TripPlanSummary page
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TripPlanSummary(logoImagePath: '', tripDestination: '', tripDate: '', groupSize: '',),
-                        ),
-                      );
+                    onPressed: () async {
+                      // Example: Retrieve the hotel data based on user selection (adjust Firestore query as needed)
+                      String userEmail = FirebaseAuth.instance.currentUser?.email ?? '';
+                      if (userEmail.isEmpty) {
+                        print("User is not logged in");
+                        return;
+                      }
+
+                      // Reference to the user's created plan document
+                      DocumentReference createdPlanRef = FirebaseFirestore.instance.collection('CreatedPlans').doc(userEmail);
+
+                      // Fetch the first selected hotel data from the 'selectedHotels' subcollection
+                      QuerySnapshot snapshot = await createdPlanRef.collection('selectedHotels').limit(1).get();
+
+                      if (snapshot.docs.isNotEmpty) {
+                        // Assuming you're fetching the first document (adjust as needed)
+                        var hotelData = snapshot.docs.first.data() as Map<String, dynamic>; // Cast to Map<String, dynamic>
+
+                        // Extract necessary hotel data
+                        String hotelName = hotelData['hotelName'] ?? 'No Name';
+                        String hotelAddress = hotelData['hotelAddress'] ?? 'No Address';
+                        double price = hotelData['price'] ?? 0.0;
+                        List<DateTime> selectedDateRange = [hotelData['selectedDate'].toDate()]; // Assuming selectedDate is stored as a Timestamp
+
+                        // Navigate to TripPlanSummary with Firestore data
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TripPlanSummary(
+                              selectedDateRange: selectedDateRange
+                            ),
+                          ),
+                        );
+                      } else {
+                        print("No hotel data found for this user");
+                      }
                     },
                     child: Icon(
                       Icons.print,
-                      color: Colors.white, // Set the icon color to white
+                      color: Colors.white,
                     ),
                     backgroundColor: Colors.black,
                   ),
                 ),
-              ),
-
+              )
 
 
 
@@ -286,218 +315,65 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                         itemCount: hotels.length,
                         itemBuilder: (context, index) {
                           final hotel = hotels[index];
-                          return Card(
-                            margin: EdgeInsets.all(8.0),
-                            color: Colors.white.withOpacity(0.8),
-                            child: Container(
-                              height: 110, // Fixed height for the card
-                              child: Row(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0), // Uniform padding for the image
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                      child: SizedBox(
-                                        width: 90, // Fixed width for the image
-                                        height: 90, // Adjusted height for the image
-                                        child: Image.network(
-                                          hotel['hotelDp'] != null && hotel['hotelDp'].isNotEmpty
-                                              ? hotel['hotelDp']
-                                              : 'https://firebasestorage.googleapis.com/v0/b/traveldb-e33d3.appspot.com/o/no-image.png?alt=media&token=0f26a585-f988-439d-ba97-0dea7cc89218',
-                                          fit: BoxFit.cover, // Cover the area
-                                        ),
-                                      ),
-                                    ),
+                          return GestureDetector(
+                            onTap: () {
+                              // Navigate to HotelDetailPage when the card is tapped
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => HotelDetailPage(
+                                    hotelName: hotel['hotelName'] ?? 'No Name',
+                                    hotelDescription: hotel['hotelDescription'] ?? 'No Description',
+                                    price: double.tryParse(hotel['price']?.toString() ?? '0.0') ?? 0.0,
+                                    hotelAddress: hotel['hotelAddress'] ?? 'No Address',
+                                    hotelDocumentId: hotel['documentId'], // Pass the document ID here
                                   ),
-
-                                  Expanded(
-                                    child: ListTile(
-                                      title: Text(
-                                        hotel['hotelName'] ?? 'No Name',
-                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-                                      ),
-                                      subtitle: Text(
-                                        hotel['hotelAddress'] ?? 'No Address',
-                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
-                                      ),
-                                    ),
-                                  ),
-
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 8.0), // Right padding for the button
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        if (widget.selectedDateRange != null) {
-                                          List<DateTime> dateList = _getDatesInRange(widget.selectedDateRange!);
-                                          showDialog(
-                                            context: context,
-                                            builder: (BuildContext context) {
-                                              return SimpleDialog(
-                                                title: Text('Fix Your Dates'),
-                                                children: dateList.map((date) {
-                                                  return Padding(
-                                                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                                    child: FractionallySizedBox(
-                                                      widthFactor: 0.7,
-                                                      child: Container(
-                                                        decoration: BoxDecoration(
-                                                          border: Border.all(color: Colors.black, width: 1.0),
-                                                          borderRadius: BorderRadius.circular(20.0),
-                                                        ),
-                                                        child: SimpleDialogOption(
-                                                          onPressed: () async {
-                                                            print('Selected date: ${date.toString().split(' ')[0]}');
-
-                                                            // Ensure price is a double
-                                                            double priceValue = (hotel['price'] is int) ? (hotel['price'] as int).toDouble() : hotel['price'];
-
-                                                            // Call saveToFirestore with hotel data, selected date, and price
-                                                            await saveToFirestore(
-                                                              hotel['hotelName'],
-                                                              hotel['hotelAddress'],
-                                                              date,
-                                                              priceValue, // Pass the price value here
-                                                            );
-
-                                                            Navigator.pop(context); // Close the dialog
-                                                          },
-                                                          child: Center(
-                                                            child: Text(
-                                                              '${date.toString().split(' ')[0]}',
-                                                              style: TextStyle(fontWeight: FontWeight.bold),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  );
-                                                }).toList(),
-                                              );
-                                            },
-                                          );
-                                        } else {
-                                          print('No dates selected');
-                                        }
-                                      },
-                                      child: Text('Select', style: TextStyle(color: Colors.white, fontSize: 14)),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.black,
-                                      ),
-                                    ),
-                                  ),
+                                ),
+                              );
 
 
-
-
-
-
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-
-
-
-            // Tab 2: Attractions
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: fetchData('Attractions'),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error loading data'));
-                }
-                final attractions = snapshot.data ?? [];
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 10),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Center(
-                        child: Text(
-                          'Top sights in Kandy',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: GridView.builder(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                            childAspectRatio: 0.5, // Adjusted for a smaller card size
-                          ),
-                          itemCount: attractions.length,
-                          itemBuilder: (context, index) {
-                            final attraction = attractions[index];
-
-                            return Card(
+                            },
+                            child: Card(
                               margin: EdgeInsets.all(8.0),
                               color: Colors.white.withOpacity(0.8),
                               child: Container(
-                                // Removed height to let it size according to content
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
+                                height: 110, // Fixed height for the card
+                                child: Row(
                                   children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                      child: Image.network(
-                                        attraction['attractionDp'] != null && attraction['attractionDp'].isNotEmpty
-                                            ? attraction['attractionDp']
-                                            : 'https://firebasestorage.googleapis.com/v0/b/traveldb-e33d3.appspot.com/o/no-image.png?alt=media&token=0f26a585-f988-439d-ba97-0dea7cc89218',
-                                        height: 150, // Maintain the image height
-                                        fit: BoxFit.cover,
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0), // Uniform padding for the image
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(10.0),
+                                        child: SizedBox(
+                                          width: 90, // Fixed width for the image
+                                          height: 90, // Adjusted height for the image
+                                          child: Image.network(
+                                            hotel['hotelDp'] != null && hotel['hotelDp'].isNotEmpty
+                                                ? hotel['hotelDp']
+                                                : 'https://firebasestorage.googleapis.com/v0/b/traveldb-e33d3.appspot.com/o/no-image.png?alt=media&token=0f26a585-f988-439d-ba97-0dea7cc89218',
+                                            fit: BoxFit.cover, // Cover the area
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                    SizedBox(height: 8.0),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                      child: Text(
-                                        attraction['attractionName'] ?? 'No Name',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 17,
+                                    Expanded(
+                                      child: ListTile(
+                                        title: Text(
+                                          hotel['hotelName'] ?? 'No Name',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                                        ),
+                                        subtitle: Text(
+                                          hotel['hotelAddress'] ?? 'No Address',
+                                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
                                         ),
                                       ),
                                     ),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                      child: Text(
-                                        attraction['attractionAddress'] ?? 'No Address',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 15.0), // Reduced space above the button
-                                    SizedBox(
-                                      width: 100, // Set fixed width
-                                      height: 40, // Set fixed height
+                                      padding: const EdgeInsets.only(right: 8.0), // Right padding for the button
                                       child: ElevatedButton(
-                                        onPressed: () {
+                                        onPressed: () async {
                                           if (widget.selectedDateRange != null) {
-                                            // Generate a list of individual dates from the selected date range
                                             List<DateTime> dateList = _getDatesInRange(widget.selectedDateRange!);
-
-                                            // Show the selected dates in a selection dialog
                                             showDialog(
                                               context: context,
                                               builder: (BuildContext context) {
@@ -507,7 +383,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                                     return Padding(
                                                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                                                       child: FractionallySizedBox(
-                                                        widthFactor: 0.7, // Reduces the width to 70% of the parent width
+                                                        widthFactor: 0.7,
                                                         child: Container(
                                                           decoration: BoxDecoration(
                                                             border: Border.all(color: Colors.black, width: 1.0),
@@ -515,20 +391,67 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                                           ),
                                                           child: SimpleDialogOption(
                                                             onPressed: () async {
-                                                              print('Selected date: ${date.toString().split(' ')[0]}');
+                                                              String hotelName = hotel['hotelName'] ?? 'No Name';
+                                                              String hotelAddress = hotel['hotelAddress'] ?? 'No Address';
+                                                              double price = double.tryParse(hotel['price']?.toString() ?? '0.0') ?? 0.0;
+                                                              DateTime selectedDate = date; // Selected date
 
-                                                              // Ensure price is a double
-                                                              double priceValue = (attraction['price'] is int) ? (attraction['price'] as int).toDouble() : attraction['price'];
+                                                              Navigator.pop(context);
 
-                                                              // Call saveAttractionToFirestore with attraction data and selected date
-                                                              await saveAttractionToFirestore(
-                                                                attraction['attractionName'],
-                                                                attraction['attractionAddress'],
-                                                                date,
-                                                                priceValue, // Pass the price value here
-                                                              );
+                                                              String userEmail = FirebaseAuth.instance.currentUser?.email ?? '';
+                                                              if (userEmail.isEmpty) {
+                                                                print("User is not logged in");
+                                                                return;
+                                                              }
 
-                                                              Navigator.pop(context); // Close the dialog
+                                                              DocumentReference createdPlanRef = FirebaseFirestore.instance
+                                                                  .collection('CreatedPlans')
+                                                                  .doc(userEmail);
+
+                                                              DocumentSnapshot docSnapshot = await createdPlanRef.get();
+                                                              Map<String, dynamic> selectedHotelData = {
+                                                                'hotelName': hotelName,
+                                                                'hotelAddress': hotelAddress,
+                                                                'price': price,
+                                                                'selectedDate': selectedDate,
+                                                              };
+
+                                                              if (docSnapshot.exists) {
+                                                                await createdPlanRef
+                                                                    .collection('selectedHotels')
+                                                                    .add(selectedHotelData)
+                                                                    .then((value) {
+                                                                  print('Hotel data saved to existing document');
+                                                                }).catchError((error) {
+                                                                  print('Failed to save hotel data: $error');
+                                                                });
+                                                              } else {
+                                                                await createdPlanRef
+                                                                    .set({'createdAt': FieldValue.serverTimestamp()})
+                                                                    .then((value) async {
+                                                                  await createdPlanRef
+                                                                      .collection('selectedHotels')
+                                                                      .add(selectedHotelData)
+                                                                      .then((value) {
+                                                                    print('Hotel data saved to new document');
+                                                                  }).catchError((error) {
+                                                                    print('Failed to save hotel data: $error');
+                                                                  });
+                                                                }).catchError((error) {
+                                                                  print('Failed to create CreatedPlans document: $error');
+                                                                });
+                                                              }
+
+                                                              if (mounted) {
+                                                                Navigator.push(
+                                                                  context,
+                                                                  MaterialPageRoute(
+                                                                    builder: (context) => TripPlanSummary(
+                                                                      selectedDateRange: [selectedDate],
+                                                                    ),
+                                                                  ),
+                                                                );
+                                                              }
                                                             },
                                                             child: Center(
                                                               child: Text(
@@ -548,25 +471,18 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                             print('No dates selected');
                                           }
                                         },
-                                        child: Text(
-                                          'Select',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                          ),
-                                        ),
+                                        child: Text('Select', style: TextStyle(color: Colors.white, fontSize: 14)),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.black,
                                         ),
                                       ),
                                     ),
-
                                   ],
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -576,7 +492,213 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
 
 
 
-            // Tab 3: Activities
+
+            // Tab 2: Attractions
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: fetchData('Attractions'), // Fetch data for Attractions
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error loading data'));
+              }
+              final attractions = snapshot.data ?? [];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        'Top Attractions Just For You!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: attractions.length,
+                      itemBuilder: (context, index) {
+                        final attraction = attractions[index];
+                        return Card(
+                          margin: EdgeInsets.all(8.0),
+                          color: Colors.white.withOpacity(0.8),
+                          child: Container(
+                            height: 110, // Fixed height for the card
+                            child: Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0), // Uniform padding for the image
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10.0),
+                                    child: SizedBox(
+                                      width: 90, // Fixed width for the image
+                                      height: 90, // Adjusted height for the image
+                                      child: Image.network(
+                                        attraction['attractionDp'] != null && attraction['attractionDp'].isNotEmpty
+                                            ? attraction['attractionDp']
+                                            : 'https://firebasestorage.googleapis.com/v0/b/traveldb-e33d3.appspot.com/o/no-image.png?alt=media&token=0f26a585-f988-439d-ba97-0dea7cc89218',
+                                        fit: BoxFit.cover, // Cover the area
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                Expanded(
+                                  child: ListTile(
+                                    title: Text(
+                                      attraction['attractionName'] ?? 'No Name',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                                    ),
+                                    subtitle: Text(
+                                      attraction['attractionAddress'] ?? 'No Address',
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+                                    ),
+                                  ),
+                                ),
+
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8.0), // Right padding for the button
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      if (widget.selectedDateRange != null) {
+                                        List<DateTime> dateList = _getDatesInRange(widget.selectedDateRange!);
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return SimpleDialog(
+                                              title: Text('Fix Your Dates'),
+                                              children: dateList.map((date) {
+                                                return Padding(
+                                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                                  child: FractionallySizedBox(
+                                                    widthFactor: 0.7,
+                                                    child: Container(
+                                                      decoration: BoxDecoration(
+                                                        border: Border.all(color: Colors.black, width: 1.0),
+                                                        borderRadius: BorderRadius.circular(20.0),
+                                                      ),
+                                                      child: SimpleDialogOption(
+                                                        onPressed: () async {
+                                                          // Retrieve data from the current attraction object
+                                                          String attractionName = attraction['attractionName'] ?? 'No Name';
+                                                          String attractionAddress = attraction['attractionAddress'] ?? 'No Address';
+                                                          double price = double.tryParse(attraction['price']?.toString() ?? '0.0') ?? 0.0;
+                                                          DateTime selectedDate = date; // Selected date
+
+                                                          // Close the dialog box
+                                                          Navigator.pop(context);
+
+                                                          // Get the current user's email (assuming the user is logged in)
+                                                          String userEmail = FirebaseAuth.instance.currentUser?.email ?? ''; // Retrieve current user's email
+                                                          if (userEmail.isEmpty) {
+                                                            print("User is not logged in");
+                                                            return;
+                                                          }
+
+                                                          // Reference to the user's CreatedPlans document using email as document ID
+                                                          DocumentReference createdPlanRef = FirebaseFirestore.instance
+                                                              .collection('CreatedPlans')
+                                                              .doc(userEmail); // Using userEmail as the document name
+
+                                                          // Check if the document already exists
+                                                          DocumentSnapshot docSnapshot = await createdPlanRef.get();
+
+                                                          // Create a Map for the selected attraction data
+                                                          Map<String, dynamic> selectedAttractionData = {
+                                                            'attractionName': attractionName,
+                                                            'attractionAddress': attractionAddress,
+                                                            'price': price,
+                                                            'selectedDate': selectedDate,
+                                                          };
+
+                                                          if (docSnapshot.exists) {
+                                                            // If document exists, add the selected attraction to selectedAttractions collection
+                                                            await createdPlanRef
+                                                                .collection('selectedAttractions') // Subcollection of selectedAttractions
+                                                                .add(selectedAttractionData) // Adding a new document with random ID
+                                                                .then((value) {
+                                                              print('Attraction data saved to existing document');
+                                                            }).catchError((error) {
+                                                              print('Failed to save attraction data: $error');
+                                                            });
+                                                          } else {
+                                                            // If document doesn't exist, create a new document and add the attraction data
+                                                            await createdPlanRef
+                                                                .set({'createdAt': FieldValue.serverTimestamp()}) // Create a document
+                                                                .then((value) async {
+                                                              // Now save to the selectedAttractions subcollection
+                                                              await createdPlanRef
+                                                                  .collection('selectedAttractions')
+                                                                  .add(selectedAttractionData)
+                                                                  .then((value) {
+                                                                print('Attraction data saved to new document');
+                                                              }).catchError((error) {
+                                                                print('Failed to save attraction data: $error');
+                                                              });
+                                                            }).catchError((error) {
+                                                              print('Failed to create CreatedPlans document: $error');
+                                                            });
+                                                          }
+
+                                                          // Navigate to TripPlanSummary (without passing data directly)
+                                                          if (mounted) {
+                                                            Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                builder: (context) => TripPlanSummary(
+                                                                  selectedDateRange: [selectedDate], // Pass only the selected date range
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }
+                                                        },
+                                                        child: Center(
+                                                          child: Text(
+                                                            '${date.toString().split(' ')[0]}',
+                                                            style: TextStyle(fontWeight: FontWeight.bold),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            );
+                                          },
+                                        );
+                                      } else {
+                                        print('No dates selected');
+                                      }
+                                    },
+                                    child: Text('Select', style: TextStyle(color: Colors.white, fontSize: 14)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+
+
+
+
+          // Tab 3: Activities
             FutureBuilder<List<Map<String, dynamic>>>(
               future: fetchData('Activities'),
               builder: (context, snapshot) {
@@ -645,12 +767,10 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                       ),
                                     ),
                                   ),
-
-
                                   Padding(
                                     padding: const EdgeInsets.only(right: 8.0), // Right padding for the button
                                     child: ElevatedButton(
-                                      onPressed: () {
+                                      onPressed: () async {
                                         if (widget.selectedDateRange != null) {
                                           List<DateTime> dateList = _getDatesInRange(widget.selectedDateRange!);
                                           showDialog(
@@ -670,20 +790,78 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                                         ),
                                                         child: SimpleDialogOption(
                                                           onPressed: () async {
-                                                            print('Selected date: ${date.toString().split(' ')[0]}');
+                                                            // Retrieve data from the current activity object
+                                                            String activityName = activity['activityName'] ?? 'No Name';
+                                                            String activityAddress = activity['activityAddress'] ?? 'No Address';
+                                                            double price = double.tryParse(activity['price']?.toString() ?? '0.0') ?? 0.0;
+                                                            DateTime selectedDate = date; // Selected date
 
-                                                            // Ensure price is a double
-                                                            double priceValue = (activity['price'] is int) ? (activity['price'] as int).toDouble() : activity['price'];
+                                                            // Close the dialog box
+                                                            Navigator.pop(context);
 
-                                                            // Call saveActivityToFirestore with activity data and selected date
-                                                            await saveActivityToFirestore(
-                                                              activity['activityName'],
-                                                              activity['activityAddress'],
-                                                              date,
-                                                              priceValue, // Pass the price value here
-                                                            );
+                                                            // Get the current user's email (assuming the user is logged in)
+                                                            String userEmail = FirebaseAuth.instance.currentUser?.email ?? ''; // Retrieve current user's email
+                                                            if (userEmail.isEmpty) {
+                                                              print("User is not logged in");
+                                                              return;
+                                                            }
 
-                                                            Navigator.pop(context); // Close the dialog
+                                                            // Reference to the user's CreatedPlans document using email as document ID
+                                                            DocumentReference createdPlanRef = FirebaseFirestore.instance
+                                                                .collection('CreatedPlans')
+                                                                .doc(userEmail); // Using userEmail as the document name
+
+                                                            // Check if the document already exists
+                                                            DocumentSnapshot docSnapshot = await createdPlanRef.get();
+
+                                                            // Create a Map for the selected activity data
+                                                            Map<String, dynamic> selectedActivityData = {
+                                                              'activityName': activityName,
+                                                              'activityAddress': activityAddress,
+                                                              'price': price,
+                                                              'selectedDate': selectedDate,
+                                                            };
+
+                                                            if (docSnapshot.exists) {
+                                                              // If document exists, add the selected activity to selectedActivities collection
+                                                              await createdPlanRef
+                                                                  .collection('selectedActivities') // Subcollection of selectedActivities
+                                                                  .add(selectedActivityData) // Adding a new document with random ID
+                                                                  .then((value) {
+                                                                print('Activity data saved to existing document');
+                                                              }).catchError((error) {
+                                                                print('Failed to save activity data: $error');
+                                                              });
+                                                            } else {
+                                                              // If document doesn't exist, create a new document and add the activity data
+                                                              await createdPlanRef
+                                                                  .set({'createdAt': FieldValue.serverTimestamp()}) // Create a document
+                                                                  .then((value) async {
+                                                                // Now save to the selectedActivities subcollection
+                                                                await createdPlanRef
+                                                                    .collection('selectedActivities')
+                                                                    .add(selectedActivityData)
+                                                                    .then((value) {
+                                                                  print('Activity data saved to new document');
+                                                                }).catchError((error) {
+                                                                  print('Failed to save activity data: $error');
+                                                                });
+                                                              }).catchError((error) {
+                                                                print('Failed to create CreatedPlans document: $error');
+                                                              });
+                                                            }
+
+                                                            // Navigate to TripPlanSummary (without passing data directly)
+                                                            if (mounted) {
+                                                              Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                  builder: (context) => TripPlanSummary(
+                                                                    selectedDateRange: [selectedDate], // Pass only the selected date range
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            }
                                                           },
                                                           child: Center(
                                                             child: Text(
@@ -703,13 +881,12 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                           print('No dates selected');
                                         }
                                       },
-                                      child: Text('Select', style: TextStyle(color: Colors.white)),
+                                      child: Text('Select', style: TextStyle(color: Colors.white, fontSize: 14)),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.black,
                                       ),
                                     ),
                                   ),
-
                                 ],
                               ),
                             ),
@@ -721,6 +898,9 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                 );
               },
             ),
+
+
+
 
 
 
@@ -767,7 +947,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                               child: Row(
                                 children: [
                                   Padding(
-                                    padding: const EdgeInsets.all(8.0), // Uniform padding for the image
+                                    padding: const EdgeInsets.all(8.0),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(10.0),
                                       child: SizedBox(
@@ -797,7 +977,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                   Padding(
                                     padding: const EdgeInsets.only(right: 8.0), // Right padding for the button
                                     child: ElevatedButton(
-                                      onPressed: () {
+                                      onPressed: () async {
                                         if (widget.selectedDateRange != null) {
                                           List<DateTime> dateList = _getDatesInRange(widget.selectedDateRange!);
                                           showDialog(
@@ -817,20 +997,78 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                                         ),
                                                         child: SimpleDialogOption(
                                                           onPressed: () async {
-                                                            print('Selected date: ${date.toString().split(' ')[0]}');
+                                                            // Retrieve data from the current restaurant object
+                                                            String restaurantName = restaurant['restaurantName'] ?? 'No Name';
+                                                            String restaurantAddress = restaurant['restaurantAddress'] ?? 'No Address';
+                                                            double price = double.tryParse(restaurant['price']?.toString() ?? '0.0') ?? 0.0;
+                                                            DateTime selectedDate = date; // Selected date
 
-                                                            // Ensure price is a double (you should retrieve the price from the restaurant object)
-                                                            double priceValue = (restaurant['price'] is int) ? (restaurant['price'] as int).toDouble() : restaurant['price'];
+                                                            // Close the dialog box
+                                                            Navigator.pop(context);
 
-                                                            // Call saveRestaurantToFirestore with restaurant data, selected date, and price
-                                                            await saveRestaurantToFirestore(
-                                                              restaurant['restaurantName'],
-                                                              restaurant['restaurantAddress'],
-                                                              date,
-                                                              priceValue, // Pass the price value here
-                                                            );
+                                                            // Get the current user's email (assuming the user is logged in)
+                                                            String userEmail = FirebaseAuth.instance.currentUser?.email ?? ''; // Retrieve current user's email
+                                                            if (userEmail.isEmpty) {
+                                                              print("User is not logged in");
+                                                              return;
+                                                            }
 
-                                                            Navigator.pop(context); // Close the dialog
+                                                            // Reference to the user's CreatedPlans document using email as document ID
+                                                            DocumentReference createdPlanRef = FirebaseFirestore.instance
+                                                                .collection('CreatedPlans')
+                                                                .doc(userEmail); // Using userEmail as the document name
+
+                                                            // Check if the document already exists
+                                                            DocumentSnapshot docSnapshot = await createdPlanRef.get();
+
+                                                            // Create a Map for the selected restaurant data
+                                                            Map<String, dynamic> selectedRestaurantData = {
+                                                              'restaurantName': restaurantName,
+                                                              'restaurantAddress': restaurantAddress,
+                                                              'price': price,
+                                                              'selectedDate': selectedDate,
+                                                            };
+
+                                                            if (docSnapshot.exists) {
+                                                              // If document exists, add the selected restaurant to selectedRestaurants collection
+                                                              await createdPlanRef
+                                                                  .collection('selectedRestaurants') // Subcollection of selectedRestaurants
+                                                                  .add(selectedRestaurantData) // Adding a new document with random ID
+                                                                  .then((value) {
+                                                                print('Restaurant data saved to existing document');
+                                                              }).catchError((error) {
+                                                                print('Failed to save restaurant data: $error');
+                                                              });
+                                                            } else {
+                                                              // If document doesn't exist, create a new document and add the restaurant data
+                                                              await createdPlanRef
+                                                                  .set({'createdAt': FieldValue.serverTimestamp()}) // Create a document
+                                                                  .then((value) async {
+                                                                // Now save to the selectedRestaurants subcollection
+                                                                await createdPlanRef
+                                                                    .collection('selectedRestaurants')
+                                                                    .add(selectedRestaurantData)
+                                                                    .then((value) {
+                                                                  print('Restaurant data saved to new document');
+                                                                }).catchError((error) {
+                                                                  print('Failed to save restaurant data: $error');
+                                                                });
+                                                              }).catchError((error) {
+                                                                print('Failed to create CreatedPlans document: $error');
+                                                              });
+                                                            }
+
+                                                            // Navigate to TripPlanSummary (without passing data directly)
+                                                            if (mounted) {
+                                                              Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                  builder: (context) => TripPlanSummary(
+                                                                    selectedDateRange: [selectedDate], // Pass only the selected date range
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            }
                                                           },
                                                           child: Center(
                                                             child: Text(
@@ -856,7 +1094,6 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                       ),
                                     ),
                                   ),
-
                                 ],
                               ),
                             ),
@@ -868,6 +1105,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                 );
               },
             ),
+
 
 
 
